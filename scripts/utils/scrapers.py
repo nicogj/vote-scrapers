@@ -203,10 +203,12 @@ class FranceAssembleeScrapper():
 
         party_l = [re.sub(r'\([^)]*\)$', '', elem).strip() for elem in party_l]
         vote_l = [re.sub(r'\: \d+$', '', elem).strip() for elem in vote_l]
+        vote_l = [re.sub(r'^Non\-votants$', 'Non-votant', elem).strip() for elem in vote_l]
         ind_l = [elem.strip() for elem in ind_l]
 
-        temp = pd.DataFrame({'ind':ind_l, 'party':party_l, 'vote':vote_l})
+        temp = pd.DataFrame({'name':ind_l, 'party':party_l, 'vote':vote_l})
         temp['vote_num'] = i
+
         return temp
 
     def get_outcome(self):

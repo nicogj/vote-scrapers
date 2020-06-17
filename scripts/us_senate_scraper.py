@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # Check out list of all Voting Records
     base_url = requests.get(
-        "https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_"+str(congress_num)+"_"+str(session)+".htm"
+        "https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_{}_{}.htm".format(congress_num, session)
     )
 
     soup = BeautifulSoup(base_url.content, 'html.parser')
@@ -62,10 +62,7 @@ if __name__ == '__main__':
         vote_num = str(i+1).zfill(5)
         headers = {'User-Agent': 'Chrome/41.0.2228.0'}
         url = (
-            "https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?"
-            +"congress="+str(congress_num)
-            +"&session="+str(session)
-            +"&vote="+vote_num
+            "https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress={}&session={}&vote={}".format(congress_num, session, vote_num)
         )
 
         # While there are errors, keep trying
@@ -81,37 +78,26 @@ if __name__ == '__main__':
 
         if j==100:
             print("\nCould not parse vote {} ({}).\n".format(vote_num, url))
-            vote_results = pd.DataFrame(columns=['senator', 'vote_'+vote_num])
 
         else:
             vote_results = soup.findAll(class_='newspaperDisplay_3column')[0].findAll(class_='contenttext')[0].get_text()
             vote_results = vote_results.replace(", Giving Live Pair", "")
             vote_results_csv = StringIO(vote_results)
             vote_results = pd.read_csv(vote_results_csv, sep=",", header=None)
-            vote_results.columns = ['senator', 'vote_'+vote_num]
+            vote_results.columns = ['senator', 'vote']
             vote_results['senator'] = vote_results['senator'].str.strip()
-            vote_results['vote_'+vote_num] = vote_results['vote_'+vote_num].str.strip()
+            vote_results['name'] = vote_results['senator'].str[:-7].str.strip()
+            vote_results['party'] = vote_results['senator'].str[-5:-4].str.strip()
+            vote_results['state'] = vote_results['senator'].str[-3:-1].str.strip()
+            vote_results['vote_num'] = vote_num
+            vote_results['vote'] = vote_results['vote'].str.strip()
 
-        if all_votes.empty:
-            all_votes = vote_results.copy()
-        else:
-            all_votes = pd.merge(all_votes, vote_results, on='senator', how='outer')
+            all_votes = pd.concat([all_votes, vote_results], axis=0)
 
     print("\nDone!")
 
     # If the code is stuck on a vote, try opening the vote's page on your internet browser.
 
-    all_votes['senator_name'] = all_votes['senator'].str[:-7].str.strip()
-    all_votes['senator_party'] = all_votes['senator'].str[-5:-4].str.strip()
-    all_votes['senator_state'] = all_votes['senator'].str[-3:-1].str.strip()
-    del all_votes['senator']
-
-    columns = ['senator_name', 'senator_party', 'senator_state']
-    for i in range(nb_votes):
-        vote_num = str(i+1).zfill(5)
-        columns.append('vote_'+vote_num)
-    all_votes = all_votes[columns]
-
-    all_votes.to_csv(
+    all_votes[['name', 'party', 'state', 'vote', 'vote_num']].to_csv(
         OUT_PATH+"congress_{}_{}_vote_outcome.tsv".format(congress_num, session), sep='\t', index = False
     )

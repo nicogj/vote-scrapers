@@ -1,3 +1,5 @@
+# python3 scripts/us_senate_scraper.py 2020 --outpath ../../data_lake/parliament_voting_data/us_senate_voting/
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -9,13 +11,11 @@ import math
 import re
 import argparse
 
-OUT_PATH = '/Users/nico/Dropbox (MIT)/data_lake/parliament_voting_data/us_senate_voting/'
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('year',
-                        help='which year to scrape')
+    parser.add_argument('year', help='which year to scrape')
+    parser.add_argument('--outpath', default = '', type=str, help='where to save the data')
     args = parser.parse_args()
 
     # Convert year into congress session
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         vote_desc['date'][nb_votes-i]=vote_desc_table[5*i+4].get_text()
 
     vote_desc.to_csv(
-        OUT_PATH+"congress_{}_{}_vote_description.tsv".format(congress_num, session), sep='\t', index = False
+        args.outpath+"congress_{}_{}_vote_description.tsv".format(congress_num, session), sep='\t', index = False
     )
 
     # Scrape each vote
@@ -99,5 +99,5 @@ if __name__ == '__main__':
     # If the code is stuck on a vote, try opening the vote's page on your internet browser.
 
     all_votes[['name', 'party', 'state', 'vote', 'vote_num']].to_csv(
-        OUT_PATH+"congress_{}_{}_vote_outcome.tsv".format(congress_num, session), sep='\t', index = False
+        args.outpath+"congress_{}_{}_vote_outcome.tsv".format(congress_num, session), sep='\t', index = False
     )
